@@ -55,7 +55,7 @@ public class AsmsRuntime {
     /**
      * Labels and what line they reference
      */
-    private HashMap<String, Integer> labels = new HashMap<>();
+    private HashMap<String, Long> labels = new HashMap<>();
 
     /** script file **/
     private File script;
@@ -74,94 +74,100 @@ public class AsmsRuntime {
      */
 
     public void start(File script) throws AsmRuntimeException, NoSuchFieldException, IllegalAccessException {
-        String line = "";
-        int currline = 0;
-        String[] args = line.split(" ");
+        readScript();
+        while (rip <= scriptlines.size()) {
+            String line = scriptlines.get((int) rip);
+            String[] args = line.split(" ");
 
-        switch (args[0]) {
-            case "mov":
-                if (args.length < 3) {
-                    throw new AsmRuntimeException("Not enough arguments for mov");
-                } else {
-                    //Try to parse hex
-                    if (args[1].startsWith("0x")) {
-                        move(Long.parseLong(args[1], 16), args[2]);
+            switch (args[0]) {
+                case "mov":
+                    if (args.length < 3) {
+                        throw new AsmRuntimeException("Not enough arguments for mov");
                     } else {
-                        //Dec or register
-                        try {
-                            move(Long.parseLong(args[1]), args[2]);
-                        } catch (NumberFormatException e) {
-                            if (args[1].startsWith("r")) {
-                                int registernumber;
-                                try {
-                                    registernumber = Integer.parseInt(args[1].substring(1));
-                                    if (registernumber > 8) {
+                        //Try to parse hex
+                        if (args[1].startsWith("0x")) {
+                            move(Long.parseLong(args[1], 16), args[2]);
+                        } else {
+                            //Dec or register
+                            try {
+                                move(Long.parseLong(args[1]), args[2]);
+                            } catch (NumberFormatException e) {
+                                if (args[1].startsWith("r")) {
+                                    int registernumber;
+                                    try {
+                                        registernumber = Integer.parseInt(args[1].substring(1));
+                                        if (registernumber > 8) {
+                                            throw new AsmRuntimeException("Unknown register " + args[1]);
+                                        }
+
+                                        //Get number from field and then move
+                                        move(this.getClass().getField("r" + registernumber).getLong(this), args[2]);
+
+                                    } catch (NumberFormatException ef) {
                                         throw new AsmRuntimeException("Unknown register " + args[1]);
                                     }
-
-                                    //Get number from field and then move
-                                    move(this.getClass().getField("r" + registernumber).getLong(this), args[2]);
-
-                                } catch (NumberFormatException ef) {
+                                } else {
                                     throw new AsmRuntimeException("Unknown register " + args[1]);
                                 }
-                            } else {
-                                throw new AsmRuntimeException("Unknown register " + args[1]);
                             }
                         }
                     }
-                }
-                rip++;
-                break;
-            case "add":
-                //Literally the same
-                if (args.length < 3) {
-                    throw new AsmRuntimeException("Not enough arguments for add");
-                } else {
-                    //Try to parse hex
-                    if (args[1].startsWith("0x")) {
-                        add(Long.parseLong(args[1], 16), args[2]);
+                    rip++;
+                    break;
+                case "add":
+                    //Literally the same
+                    if (args.length < 3) {
+                        throw new AsmRuntimeException("Not enough arguments for add");
                     } else {
-                        //Dec or register
-                        try {
-                            add(Long.parseLong(args[1]), args[2]);
-                        } catch (NumberFormatException e) {
-                            if (args[1].startsWith("r")) {
-                                int registernumber;
-                                try {
-                                    registernumber = Integer.parseInt(args[1].substring(1));
-                                    if (registernumber > 8) {
+                        //Try to parse hex
+                        if (args[1].startsWith("0x")) {
+                            add(Long.parseLong(args[1], 16), args[2]);
+                        } else {
+                            //Dec or register
+                            try {
+                                add(Long.parseLong(args[1]), args[2]);
+                            } catch (NumberFormatException e) {
+                                if (args[1].startsWith("r")) {
+                                    int registernumber;
+                                    try {
+                                        registernumber = Integer.parseInt(args[1].substring(1));
+                                        if (registernumber > 8) {
+                                            throw new AsmRuntimeException("Unknown register " + args[1]);
+                                        }
+
+                                        //Get number from field and then move
+                                        add(this.getClass().getField("r" + registernumber).getLong(this), args[2]);
+
+                                    } catch (NumberFormatException ef) {
                                         throw new AsmRuntimeException("Unknown register " + args[1]);
                                     }
-
-                                    //Get number from field and then move
-                                    add(this.getClass().getField("r" + registernumber).getLong(this), args[2]);
-
-                                } catch (NumberFormatException ef) {
+                                } else {
                                     throw new AsmRuntimeException("Unknown register " + args[1]);
                                 }
-                            } else {
-                                throw new AsmRuntimeException("Unknown register " + args[1]);
                             }
                         }
                     }
-                }
-                rip++;
-                break;
-            default:
-                //Check for label
-                if (args[0].charAt(args[0].length() - 1) == ':') {
-                    if (labels.containsKey(args[0].replace(":", ""))) {
-                        throw new AsmRuntimeException("Label already exists!");
+                    rip++;
+                    break;
+                default:
+                    //Check for label
+                    if (args[0].charAt(args[0].length() - 1) == ':') {
+                        if (labels.containsKey(args[0].replace(":", ""))) {
+                            throw new AsmRuntimeException("Label already exists!");
+                        } else {
+                            labels.put(args[0].replace(":", ""), rip);
+                        }
                     } else {
-                        labels.put(args[0].replace(":", ""), currline);
+                        throw new AsmRuntimeException("Invalid instruction " + args[0]);
                     }
-                } else {
-                    throw new AsmRuntimeException("Invalid instruction " + args[0]);
-                }
-                break;
+                    break;
 
+            }
         }
+    }
+
+    private void readScript() {
+        //Read each line and save it in scriptlines
     }
 
     /**
