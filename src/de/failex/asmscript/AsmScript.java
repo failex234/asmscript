@@ -21,11 +21,13 @@ public class AsmScript {
                     //Check file
                     scriptfile = new File(args[args.length - 1]);
                     if (scriptfile.exists()) {
-                        new AsmsRuntime(scriptfile);
+                        new AsmsRuntime(scriptfile, true);
                     } else {
                         printUsage();
                     }
             }
+        } else {
+            printUsage();
         }
     }
 

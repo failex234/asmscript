@@ -1,6 +1,8 @@
 package de.failex.asmscript;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -23,8 +25,22 @@ import java.util.HashMap;
  */
 public class AsmsRuntime {
 
-    public AsmsRuntime(File script) {
+    public enum AsmsMethods {
+        ;
+        int METHOD_MOV = 1;
+        int METHOD_ADD = 2;
+        int METHOD_SUB = 3;
+        int METHOD_DIV = 4;
+        int METHOD_MUL = 5;
+    }
+
+    public AsmsRuntime(File script, boolean log) {
         this.script = script;
+        try {
+            start(script);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -57,7 +73,9 @@ public class AsmsRuntime {
      */
     private HashMap<String, Long> labels = new HashMap<>();
 
-    /** script file **/
+    /**
+     * script file
+     **/
     private File script;
 
     /**
@@ -67,15 +85,16 @@ public class AsmsRuntime {
 
     /**
      * Main runtime method
+     *
      * @param script the script file
-     * @throws AsmRuntimeException when there was an runtime exception
+     * @throws AsmRuntimeException    when there was an runtime exception
      * @throws NoSuchFieldException
      * @throws IllegalAccessException
      */
 
     public void start(File script) throws AsmRuntimeException, NoSuchFieldException, IllegalAccessException {
         readScript();
-        while (rip <= scriptlines.size()) {
+        while (rip < scriptlines.size()) {
             String line = scriptlines.get((int) rip);
             String[] args = line.split(" ");
 
@@ -101,7 +120,7 @@ public class AsmsRuntime {
                                         }
 
                                         //Get number from field and then move
-                                        move(this.getClass().getField("r" + registernumber).getLong(this), args[2]);
+                                        move(this.getClass().getDeclaredField("r" + registernumber).getLong(this), args[2]);
 
                                     } catch (NumberFormatException ef) {
                                         throw new AsmRuntimeException("Unknown register " + args[1]);
@@ -136,7 +155,7 @@ public class AsmsRuntime {
                                         }
 
                                         //Get number from field and then move
-                                        add(this.getClass().getField("r" + registernumber).getLong(this), args[2]);
+                                        add(this.getClass().getDeclaredField("r" + registernumber).getLong(this), args[2]);
 
                                     } catch (NumberFormatException ef) {
                                         throw new AsmRuntimeException("Unknown register " + args[1]);
@@ -149,6 +168,18 @@ public class AsmsRuntime {
                     }
                     rip++;
                     break;
+                case "jmp":
+                    if (args.length < 2) {
+                        throw new AsmRuntimeException("Not enough argument for jmp");
+                    } else {
+                        //Check if label exists
+                        String label = args[1];
+
+                        if (!labels.containsKey(label)) throw new AsmRuntimeException("Label " + label + " doesn't exist");
+
+                        rip = labels.get(label) + 1;
+                    }
+                    break;
                 default:
                     //Check for label
                     if (args[0].charAt(args[0].length() - 1) == ':') {
@@ -156,6 +187,7 @@ public class AsmsRuntime {
                             throw new AsmRuntimeException("Label already exists!");
                         } else {
                             labels.put(args[0].replace(":", ""), rip);
+                            rip++;
                         }
                     } else {
                         throw new AsmRuntimeException("Invalid instruction " + args[0]);
@@ -164,10 +196,24 @@ public class AsmsRuntime {
 
             }
         }
+        System.out.println("Runtime complete!");
+        printAllValues();
     }
 
-    private void readScript() {
+    private void readScript() throws AsmRuntimeException {
         //Read each line and save it in scriptlines
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(script));
+            String line = br.readLine();
+
+            while (line != null) {
+                scriptlines.add(line);
+                line = br.readLine();
+            }
+            br.close();
+        } catch (Exception e) {
+            throw new AsmRuntimeException("Error while reading Asm script");
+        }
     }
 
     /**
@@ -177,26 +223,38 @@ public class AsmsRuntime {
      * @param register save in which register
      */
     private void move(long number, String register) throws NoSuchFieldException, IllegalAccessException {
-        this.getClass().getField(register).setLong(this, number);
+        this.getClass().getDeclaredField(register).setLong(this, number);
     }
 
     /**
      * Adds a number to a register
-     * @param number the number to add
+     *
+     * @param number   the number to add
      * @param register the register to add to
      */
     private void add(long number, String register) throws NoSuchFieldException, IllegalAccessException {
-        this.getClass().getField(register).setLong(this, this.getClass().getField(register).getLong(this) + number);
+        this.getClass().getDeclaredField(register).setLong(this, this.getClass().getDeclaredField(register).getLong(this) + number);
     }
 
     /**
-     * Performs actions with a number and a register
-     * @param number the number
-     * @param register what register to change
-     * @param method 1 = mov, 2 = add, 3 = sub, 4 = div, 5 = mul
+     * Prints values from all registers, rip and flags
      */
-    private void changeRegister(long number, String register, int method) {
-        //Migrate all methods / majority of the code in start to this method
+    private void printAllValues() throws NoSuchFieldException, IllegalAccessException {
+        //Go through all registers
+        for (int i = 1; i < 9; i++) {
+            System.out.printf("r%d: %d\n", i, this.getClass().getDeclaredField("r" + i).getLong(this));
+        }
+        System.out.printf("rip: %d\n", rip);
+
+        System.out.printf("gtflag: %b\n", gtflag);
+        System.out.printf("ltflag: %b\n", ltflag);
+        System.out.printf("eqflag: %b\n", eqflag);
+        System.out.printf("nqflag: %b\n", nqflag);
+
+        System.out.println("\nLabels:");
+        for (String s : labels.keySet()) {
+            System.out.printf("%s -> %d\n", s, labels.get(s));
+        }
     }
 
 }
