@@ -237,6 +237,36 @@ public class AsmsRuntime {
     }
 
     /**
+     * Tests two numbers against each other
+     * @param num1 first number
+     * @param num2 second number
+     */
+    private void test(long num1, long num2) {
+        if (num1 > num2) {
+            gtflag = true;
+            ltflag = false;
+            eqflag = false;
+            nqflag = false;
+        } else if (num2 > num1) {
+            gtflag = false;
+            ltflag = true;
+            eqflag = false;
+            nqflag = true;
+        } else if (num1 == num2) {
+            gtflag = false;
+            ltflag = false;
+            eqflag = true;
+            nqflag = false;
+        } else {
+            //The program can and shouldn't ever reach this else
+            gtflag = false;
+            ltflag = false;
+            eqflag = false;
+            nqflag = true;
+        }
+    }
+
+    /**
      * Prints values from all registers, rip and flags
      */
     private void printAllValues() throws NoSuchFieldException, IllegalAccessException {
