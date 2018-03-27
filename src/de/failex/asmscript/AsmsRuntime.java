@@ -19,25 +19,16 @@ import java.util.HashMap;
  * jmp <address/label>
  * jne <address/label>
  * jgt <address/label>
- * jlz <address/label>
+ * jlt <address/label>
  * je <address/label>
  * label:
  */
 public class AsmsRuntime {
 
-    public enum AsmsMethods {
-        ;
-        int METHOD_MOV = 1;
-        int METHOD_ADD = 2;
-        int METHOD_SUB = 3;
-        int METHOD_DIV = 4;
-        int METHOD_MUL = 5;
-    }
-
     public AsmsRuntime(File script, boolean log) {
         this.script = script;
         try {
-            start(script);
+            start();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -86,13 +77,12 @@ public class AsmsRuntime {
     /**
      * Main runtime method
      *
-     * @param script the script file
      * @throws AsmRuntimeException    when there was an runtime exception
      * @throws NoSuchFieldException
      * @throws IllegalAccessException
      */
 
-    public void start(File script) throws AsmRuntimeException, NoSuchFieldException, IllegalAccessException {
+    public void start() throws AsmRuntimeException, NoSuchFieldException, IllegalAccessException {
         readScript();
         while (rip < scriptlines.size()) {
             String line = scriptlines.get((int) rip);
@@ -170,7 +160,7 @@ public class AsmsRuntime {
                     break;
                 case "jmp":
                     if (args.length < 2) {
-                        throw new AsmRuntimeException("Not enough argument for jmp");
+                        throw new AsmRuntimeException("Not enough arguments for jmp");
                     } else {
                         //Check if label exists
                         String label = args[1];
@@ -179,6 +169,99 @@ public class AsmsRuntime {
 
                         rip = labels.get(label) + 1;
                     }
+                    break;
+                case "jne":
+                    if (args.length < 2) {
+                        throw new AsmRuntimeException("Not enough arguments for jne");
+                    } else {
+                        //Check if label exists
+                        String label = args[1];
+
+                        if (!labels.containsKey(label)) throw new AsmRuntimeException("Label " + label + " doesn't exist");
+
+                        if (nqflag) rip = labels.get(label) + 1;
+                        else rip++;
+                    }
+                    break;
+                case "jgt":
+                    if (args.length < 2) {
+                        throw new AsmRuntimeException("Not enough arguments for jne");
+                    } else {
+                        //Check if label exists
+                        String label = args[1];
+
+                        if (!labels.containsKey(label)) throw new AsmRuntimeException("Label " + label + " doesn't exist");
+
+                        if (gtflag) rip = labels.get(label) + 1;
+                        else rip++;
+                    }
+                    break;
+                case "jlt":
+                    if (args.length < 2) {
+                        throw new AsmRuntimeException("Not enough arguments for jne");
+                    } else {
+                        //Check if label exists
+                        String label = args[1];
+
+                        if (!labels.containsKey(label)) throw new AsmRuntimeException("Label " + label + " doesn't exist");
+
+                        if (ltflag) rip = labels.get(label) + 1;
+                        else rip++;
+                    }
+                    break;
+                case "je":
+                    if (args.length < 2) {
+                        throw new AsmRuntimeException("Not enough arguments for jne");
+                    } else {
+                        //Check if label exists
+                        String label = args[1];
+
+                        if (!labels.containsKey(label)) throw new AsmRuntimeException("Label " + label + " doesn't exist");
+
+                        if (eqflag) rip = labels.get(label) + 1;
+                        else rip++;
+                    }
+                    break;
+                case "tst":
+                    if (args.length < 3) {
+                        throw new AsmRuntimeException("No enough arguments for tst");
+                    } else {
+                        long num1 = 0;
+                        long num2 = 0;
+
+                        if (args[1].startsWith("r")) {
+                            //TODO exception handler for regnumber!!
+                            int regnumber = Integer.parseInt(args[1].substring(1));
+                            if (regnumber > 8) {
+                                throw new AsmRuntimeException("Unknown register " + args[1]);
+                            }
+                            num1 = this.getClass().getDeclaredField(args[1]).getLong(this);
+                        } else {
+                            try {
+                                num1 = Long.parseLong(args[1]);
+                            }
+                            catch (NumberFormatException e) {
+                                throw new AsmRuntimeException("Unknown register " + args[1]);
+                            }
+                        }
+
+                        if (args[2].startsWith("r")) {
+                            //TODO exception handler for regnumber!!
+                            int regnumber = Integer.parseInt(args[2].substring(1));
+                            if (regnumber > 8) {
+                                throw new AsmRuntimeException("Unknown register " + args[2]);
+                            }
+                        } else {
+                            try {
+                                num2 = Long.parseLong(args[2]);
+                            }
+                            catch (NumberFormatException e) {
+                                throw new AsmRuntimeException("Unknown register " + args[2]);
+                            }
+                        }
+                        test(num1, num2);
+                    }
+                    rip++;
                     break;
                 default:
                     //Check for label
