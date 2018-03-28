@@ -82,12 +82,14 @@ public class AsmsRuntime {
      * @throws IllegalAccessException
      */
 
+    //TODO emulate system calls / interrupts
     public void start() throws AsmRuntimeException, NoSuchFieldException, IllegalAccessException {
         readScript();
         while (rip < scriptlines.size()) {
             String line = scriptlines.get((int) rip);
             String[] args = line.split(" ");
 
+            //TODO Set first register to 0 on arithmetic instruction
             switch (args[0]) {
                 case "mov":
                     if (args.length < 3) {
@@ -158,6 +160,12 @@ public class AsmsRuntime {
                     }
                     rip++;
                     break;
+                case "sub":
+                    if (args.length < 3) {
+                        throw new AsmRuntimeException("Not enough arguments for sub");
+                    } else {
+
+                    }
                 case "jmp":
                     if (args.length < 2) {
                         throw new AsmRuntimeException("Not enough arguments for jmp");
@@ -226,6 +234,7 @@ public class AsmsRuntime {
                     if (args.length < 3) {
                         throw new AsmRuntimeException("No enough arguments for tst");
                     } else {
+                        //TODO parse hex
                         long num1 = 0;
                         long num2 = 0;
 
@@ -283,6 +292,7 @@ public class AsmsRuntime {
         printAllValues();
     }
 
+    //TODO parse labels before runtime
     private void readScript() throws AsmRuntimeException {
         //Read each line and save it in scriptlines
         try {
@@ -290,7 +300,7 @@ public class AsmsRuntime {
             String line = br.readLine();
 
             while (line != null) {
-                scriptlines.add(line);
+                if (!line.startsWith(";")) scriptlines.add(line);
                 line = br.readLine();
             }
             br.close();
@@ -320,6 +330,17 @@ public class AsmsRuntime {
     }
 
     /**
+     * Subtracts number from register
+     * @param number the number to sutract
+     * @param register the register to subtract from
+     * @throws NoSuchFieldException
+     * @throws IllegalAccessException
+     */
+    private void sub(long number, String register) throws NoSuchFieldException, IllegalAccessException {
+        this.getClass().getDeclaredField(register).setLong(this, this.getClass().getDeclaredField(register).getLong(this) - number);
+    }
+
+    /**
      * Tests two numbers against each other
      * @param num1 first number
      * @param num2 second number
@@ -329,7 +350,7 @@ public class AsmsRuntime {
             gtflag = true;
             ltflag = false;
             eqflag = false;
-            nqflag = false;
+            nqflag = true;
         } else if (num2 > num1) {
             gtflag = false;
             ltflag = true;
